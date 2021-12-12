@@ -55,7 +55,7 @@ while(1){
 		char input[50];
 		
 		if (!strcmp(method,"GET")){
-			if (!strncmp(path,"/cgi-bin/",9)){ // qui inizia la modifica fatta da me per il %20
+			if (!strncmp(path,"/cgi-bin/",9)){ 
 					int path_index = 9;
 					int input_index = 0;
 					while(path[path_index]!=0){

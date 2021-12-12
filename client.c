@@ -15,7 +15,7 @@ struct headers{
 	char * v;
 }h[100];
 
-struct chunk {  		//per fare il parsing dei chunk
+struct chunk { //to parse chunks
 	char* chunk_size;
 	char* data;
 }c[100];
@@ -37,12 +37,12 @@ int main()
 
 	server.sin_port = htons(3459);
 
-	// Modalita 1 (solo se little endian)
+	// Mode 1 (only if little endian)
 	server.sin_addr.s_addr = 0xA3D33AD8;      // 216.58.211.163	
-	// Modalita 2 (qualunque endianness)
+	// Mode 2 (whatever endianness)
 	p = (unsigned char *)&server.sin_addr.s_addr;
 	p[0]=216;p[1]=58;p[2]=211;p[3]=163;
-	// Modalita 3 (qualunque endianness)
+	// Mode 3 (whatever endianness)
 	server.sin_addr.s_addr = *(unsigned int *)a;
 	
 	t = connect(s,(struct sockaddr *)&server,sizeof(struct sockaddr_in));		
@@ -52,7 +52,7 @@ int main()
 	write(s,request,size);	
 	j=0;k=0;
         h[k].n = response;
-        while(read(s,response+j,1)){			//inizio il parsing degli header 
+        while(read(s,response+j,1)){ //start parsing headers
         if((response[j]==':') && (!h[k].v )){
                 response[j]=0;
                 h[k].v=response+j+1;
@@ -67,57 +67,57 @@ int main()
         }
 	printf("%s\n",h[0].n);
 	 c_l=0;
-	 for(k=1;h[k].n[0];k++){						//cerco se ho fatto un errore nella richiesta,
-		printf("Header:%s--->%s\n",h[k].n,h[k].v);	//cioe' se trovo content-length
+	 for(k=1;h[k].n[0];k++){//looking for errors in the request,
+		printf("Header:%s--->%s\n",h[k].n,h[k].v);//that is, if i find 'Content-Length'
 		if(!strcmp(h[k].n,"Content-Length"))
 			for(w=0;h[k].v[w];w++)
 				c_l=c_l*10+h[k].v[w]-'0';
 	}
-	if (c_l){										//ho trovato content-length
+	if (c_l){//I found 'Content-Length'
 		entity_body = malloc(c_l+1);
 		for(size=0;(k = read(s, entity_body + size,c_l-size));size+=k);
 		entity_body[size]=0;
 		printf("%s",entity_body);
-		free(entity_body); //ridondante ma vabbe'
+		free(entity_body); //redundant here
 		}
 
-	else{											//non l' ho trovato:mi arrivano i chunk
+	else{ // didnt' find it, receiving chunks
 		entity_body = malloc (1000000);
 		
 		n = 1;
 		z = 0;
 		int sono_in_size = TRUE;
-		read (s, entity_body,1);  //leggo un solo carattere: la prima cifra del size del primo chunk
-		c[z].chunk_size = entity_body; //e poi faccio puntare c[0].chunk_size a quel carattere
+		read (s, entity_body,1);  //reading only one char: first digit of size of first chunk
+		c[z].chunk_size = entity_body; //c[0].chunk_size points to that char 
 
 		while (read(s,entity_body+n,1)) {
-			if (sono_in_size) { 	//sto leggendo un campo size
+			if (sono_in_size) { //reading size
 				if (entity_body[n] == '\n' && entity_body[n-1] == '\r') {
 					entity_body[n-1] = 0;
-					if (c[z].chunk_size[0] == '0') break; //mi fermo perche sono all' ultimo chunk
+					if (c[z].chunk_size[0] == '0') break; //stopping because I am at last chunk
 					c[z].data = entity_body+n+1;
-					sono_in_size = FALSE; // il prossimo campo sara' data
+					sono_in_size = FALSE; // next field will be data
 				}
-				//altrimenti leggi il prossimo carattere
+				//otherwise reading next char
 			}
 
-			else if (!sono_in_size) { 	//sto leggendo un campo data
+			else if (!sono_in_size) { //reading data field
 				if (entity_body[n] == '\n' && entity_body[n-1] == '\r') {
 					entity_body[n-1] = 0;
 					c[++z].chunk_size = entity_body+n+1;
-					sono_in_size = TRUE; // il prossimo campo sara' size
+					sono_in_size = TRUE; // next field will be size
 				}
-				//altrimenti leggi il prossimo carattere
+				//otherwise reading next char
 			}
 			n++;
 
 		}
 		printf("\nENTITY BODY:\n\n");
-		for (q = 0; q<z;q++) { 					//stampo solo i campi data; non mi interessa size
+		for (q = 0; q<z;q++) { //printing only data, I don't need size
 			printf("%s",c[q].data);
 		}
 
-	free(entity_body); //ridondante ma vabbe'
+	free(entity_body); //redundant
 	} 
 
-} //fine main
+} //end of main
